@@ -60,6 +60,16 @@
   /* Advanced */
   details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
   summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--muted)}
+  /* Key panel */
+  .keystat{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .kchip{font-size:13px;font-weight:600;border-radius:10px;padding:7px 12px;border:1px solid var(--line);background:#f6f8fb;color:var(--muted)}
+  .kchip.on{border-color:var(--ok);background:rgba(15,157,88,.09);color:#0b7a44}
+  .kchip .p{color:var(--ink)}
+  .kchip.on .p{color:#0b7a44}
+  #keyMsg{min-height:20px;font-size:14px;font-weight:600;margin-top:12px}
+  .note{font-size:13px;color:#8a2a1a;background:#fff6f4;border:1px solid #f3c9c0;border-radius:10px;padding:10px 12px;margin-top:10px}
+  .pwrap{position:relative}
+  .pwrap .peek{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--muted);font-size:13px;font-weight:600;padding:4px 8px;cursor:pointer}
   /* Contract editor */
   .badge-tpl{display:inline-block;background:var(--navy);color:#fff;font-weight:700;font-size:13px;border-radius:8px;padding:5px 12px;letter-spacing:.03em;text-transform:uppercase}
   .field-note{font-size:12px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
@@ -95,15 +105,56 @@
 </header>
 
 <main>
-  <!-- STEP 1 — Richiesta -->
-  <section class="card" id="step1">
-    <h2><span class="step-n">1</span>Descrivi il post</h2>
-    <p class="hint">Scegli la sede e scrivi in linguaggio naturale cosa vuoi comunicare. L'agente sceglie il template e compone i testi rispettando le regole di brand.</p>
+  <!-- STEP 1 — Chiave API della sede (pannello sempre visibile) -->
+  <section class="card" id="cardKey">
+    <h2><span class="step-n">1</span>Collega la tua chiave API</h2>
+    <p class="hint">Ogni sede genera con la propria chiave del fornitore di AI. La chiave viene verificata e conservata <b>cifrata sul server</b>: non resta su questa pagina e non va reinserita a ogni visita. Puoi collegare più fornitori e scegliere quale usare per ciascun post.</p>
 
     <div class="row">
       <div>
         <label for="sede">Sede</label>
         <select id="sede"></select>
+      </div>
+    </div>
+
+    <label>Fornitori collegati</label>
+    <div class="keystat" id="keyStatus"><span class="spinner"></span> Controllo in corso…</div>
+
+    <div class="row" style="margin-top:12px">
+      <div>
+        <label for="keyProvider">Fornitore</label>
+        <select id="keyProvider">
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai">OpenAI (GPT)</option>
+          <option value="google">Google (Gemini)</option>
+        </select>
+      </div>
+      <div>
+        <label for="apiKey">Chiave API <span class="field-note" id="keyHint"></span></label>
+        <div class="pwrap">
+          <input type="password" id="apiKey" autocomplete="off" spellcheck="false" placeholder="Incolla qui la chiave">
+          <button type="button" class="peek" id="peek">mostra</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" id="btnLink">Collega / Aggiorna chiave</button>
+    </div>
+    <div id="keyMsg"></div>
+  </section>
+
+  <!-- STEP 2 — Richiesta -->
+  <section class="card" id="step1">
+    <h2><span class="step-n">2</span>Descrivi il post</h2>
+    <p class="hint">Scrivi in linguaggio naturale cosa vuoi comunicare. L'agente sceglie il template e compone i testi rispettando le regole di brand.</p>
+
+    <div class="row">
+      <div>
+        <label for="genProvider">Fornitore per questo post</label>
+        <select id="genProvider">
+          <option value="">Automatico (ultima chiave collegata)</option>
+        </select>
       </div>
       <div>
         <label>Formati da generare</label>
@@ -118,16 +169,7 @@
     <label for="richiesta">Richiesta</label>
     <textarea id="richiesta" placeholder="Es.: Prepara un post che annuncia che il 25–40% delle PMI usa già almeno uno strumento di AI, citando l'Osservatorio Digitale PMI 2026."></textarea>
 
-    <details>
-      <summary>Opzioni avanzate</summary>
-      <label for="provider">Provider del modello</label>
-      <select id="provider">
-        <option value="">Automatico (dalla chiave della sede)</option>
-        <option value="anthropic">Anthropic (Claude)</option>
-        <option value="openai">OpenAI (GPT)</option>
-        <option value="google">Google (Gemini)</option>
-      </select>
-    </details>
+    <div class="note" id="genNote" hidden>Collega prima una chiave API qui sopra per poter generare.</div>
 
     <div class="actions">
       <button class="btn-primary" id="btnGen">Genera contenuto</button>
@@ -136,7 +178,7 @@
 
   <!-- STEP 2 — Anteprima / editing del contratto -->
   <section class="card" id="step2" hidden>
-    <h2><span class="step-n">2</span>Rivedi il contenuto</h2>
+    <h2><span class="step-n">3</span>Rivedi il contenuto</h2>
     <p class="hint">L'agente ha scelto il template e proposto i testi. Puoi correggerli prima di creare le immagini.</p>
     <div style="margin-bottom:8px">Template scelto: <span class="badge-tpl" id="tplBadge">—</span></div>
     <div id="editor"></div>
@@ -148,7 +190,7 @@
 
   <!-- STEP 3 — Immagini -->
   <section class="card" id="step3" hidden>
-    <h2><span class="step-n">3</span>Scarica le immagini</h2>
+    <h2><span class="step-n">4</span>Scarica le immagini</h2>
     <p class="hint">Immagini a norma di brand (palette, logo di sede, badge AI). Nessuna pubblicazione: solo download.</p>
     <div class="grid" id="images"></div>
     <div class="actions">
@@ -192,16 +234,28 @@ const LABELS = {
 // Campi che meritano una textarea (testo lungo).
 const LONG = new Set(["testo", "quote", "titolo", "sottotitolo", "claim"]);
 
+// Fornitori di AI supportati (etichetta + suggerimento sul formato della chiave).
+const PROV = {
+  anthropic: { nome: "Anthropic (Claude)", hint: "di solito inizia con sk-ant-…" },
+  openai:    { nome: "OpenAI (GPT)",       hint: "di solito inizia con sk-…" },
+  google:    { nome: "Google (Gemini)",    hint: "chiave di Google AI Studio" },
+};
+const PROV_ORDER = ["anthropic", "openai", "google"];
+
 // Stato della sessione corrente.
-const state = { sedeId: null, contratto: null, generationId: null, formati: [] };
+const state = { sedeId: null, contratto: null, generationId: null, formati: [], keys: [] };
 
 const $ = (id) => document.getElementById(id);
 const status = (msg, cls = "s-info", spin = false) => {
   $("status").className = cls;
   $("status").innerHTML = (spin ? '<span class="spinner"></span>' : "") + msg;
 };
+const keyMsg = (msg, cls = "s-info", spin = false) => {
+  $("keyMsg").className = cls;
+  $("keyMsg").innerHTML = (spin ? '<span class="spinner"></span>' : "") + msg;
+};
 
-// Popola il menu delle sedi.
+// Popola il menu delle sedi e carica lo stato delle chiavi della prima sede.
 (function initSedi() {
   const sel = $("sede");
   CONFIG.SEDI.forEach((s) => {
@@ -209,6 +263,101 @@ const status = (msg, cls = "s-info", spin = false) => {
     o.value = s.id; o.textContent = s.nome; sel.appendChild(o);
   });
 })();
+$("sede").addEventListener("change", loadKeyStatus);
+
+/* ---------------------- STEP 1 → chiave API della sede -------------------- */
+// Mostra quali fornitori sono già collegati (provider + ultime 4 cifre, mai la chiave)
+// e prepara l'elenco dei fornitori selezionabili per la generazione.
+async function loadKeyStatus() {
+  const sedeId = $("sede").value;
+  state.sedeId = sedeId;
+  $("keyStatus").innerHTML = '<span class="spinner"></span> Controllo in corso…';
+  try {
+    const { data } = await callFn("validate-key", { sedeId, action: "status" });
+    state.keys = (data && data.ok && Array.isArray(data.keys)) ? data.keys : [];
+  } catch { state.keys = []; }
+  renderKeyStatus(state.keys);
+  populateGenProvider(state.keys);
+}
+
+function renderKeyStatus(keys) {
+  const last4 = {};
+  keys.forEach((k) => { if (k && k.provider) last4[k.provider] = k.last4; });
+  const box = $("keyStatus"); box.innerHTML = "";
+  PROV_ORDER.forEach((p) => {
+    const on = last4[p] != null;
+    const chip = document.createElement("span");
+    chip.className = "kchip " + (on ? "on" : "off");
+    chip.innerHTML = on
+      ? `<span class="p">${PROV[p].nome}</span> ✓ ····${escapeHtml(String(last4[p]))}`
+      : `<span class="p">${PROV[p].nome}</span> — non collegata`;
+    box.appendChild(chip);
+  });
+}
+
+// Il menu "Fornitore per questo post" elenca solo i fornitori con una chiave collegata,
+// più "Automatico". Se non c'è nessuna chiave, blocca la generazione e lo segnala.
+function populateGenProvider(keys) {
+  const sel = $("genProvider");
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Automatico (ultima chiave collegata)</option>';
+  keys.forEach((k) => {
+    if (!k || !k.provider) return;
+    const o = document.createElement("option");
+    o.value = k.provider; o.textContent = PROV[k.provider]?.nome || k.provider;
+    sel.appendChild(o);
+  });
+  if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+  const has = keys.length > 0;
+  $("btnGen").disabled = !has;
+  $("genNote").hidden = has;
+}
+
+// Suggerimento sul formato della chiave in base al fornitore scelto.
+function updateKeyHint() {
+  $("keyHint").textContent = "— " + (PROV[$("keyProvider").value]?.hint || "");
+}
+$("keyProvider").addEventListener("change", updateKeyHint);
+updateKeyHint();
+
+// Mostra/nascondi la chiave mentre la si incolla (comodità, resta solo lato client).
+$("peek").addEventListener("click", () => {
+  const inp = $("apiKey");
+  const show = inp.type === "password";
+  inp.type = show ? "text" : "password";
+  $("peek").textContent = show ? "nascondi" : "mostra";
+});
+
+// Collega/aggiorna la chiave: validate-key la verifica con una chiamata reale al modello
+// e la salva cifrata nel Vault. La chiave non viene mai conservata in questa pagina.
+$("btnLink").addEventListener("click", async () => {
+  const sedeId = $("sede").value;
+  const provider = $("keyProvider").value;
+  const apiKey = $("apiKey").value.trim();
+  if (!apiKey) return keyMsg("Incolla la chiave API prima di collegarla.", "s-err");
+
+  $("btnLink").disabled = true;
+  keyMsg("Verifica della chiave in corso…", "s-info", true);
+  try {
+    const { status: code, data } = await callFn("validate-key", { sedeId, provider, apiKey });
+    if (data && data.ok) {
+      $("apiKey").value = "";
+      $("apiKey").type = "password"; $("peek").textContent = "mostra";
+      keyMsg(`Chiave ${PROV[provider].nome} collegata ✓ (····${escapeHtml(String(data.last4 || ""))}).`, "s-ok");
+      await loadKeyStatus();
+      $("genProvider").value = provider; // preseleziona il fornitore appena collegato
+    } else {
+      keyMsg((data && data.error) ? data.error : `Verifica non riuscita (codice ${code}).`, "s-err");
+    }
+  } catch (e) {
+    keyMsg("Errore di rete verso il servizio. Riprova.", "s-err");
+  } finally {
+    $("btnLink").disabled = false;
+  }
+});
+
+// Carica lo stato all'avvio.
+loadKeyStatus();
 
 // Evidenzia le "chip" dei formati selezionati.
 $("formats").addEventListener("change", (e) => {
@@ -235,11 +384,11 @@ async function callFn(name, body) {
   return { status: res.status, data };
 }
 
-/* -------------------------- STEP 1 → genera -------------------------------- */
+/* -------------------------- STEP 2 → genera -------------------------------- */
 $("btnGen").addEventListener("click", async () => {
   const sedeId = $("sede").value;
   const richiesta = $("richiesta").value.trim();
-  const provider = $("provider").value || undefined;
+  const provider = $("genProvider").value || undefined;
   const formati = selectedFormats();
 
   if (!richiesta) return status("Scrivi prima la richiesta.", "s-err");
