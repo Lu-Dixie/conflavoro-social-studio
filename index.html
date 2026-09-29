@@ -757,6 +757,7 @@ function errMsg(code, data) {
   const e = data && (data.error || data.message);
   if (code === 401) return "Chiave della sede non valida: controlla la BYO-key.";
   if (code === 409) return "Nessun prompt di sistema attivo. " + (e || "");
+  if (code === 429) return e || "Limite o quota del provider AI raggiunto: attendi qualche minuto o collega un altro fornitore.";
   if (code === 502) return "Modello temporaneamente non raggiungibile: riprova tra poco.";
   if (code === 422) return "La risposta del modello non è interpretabile: riprova.";
   return "Errore" + (e ? `: ${e}` : ` (codice ${code}).`);
