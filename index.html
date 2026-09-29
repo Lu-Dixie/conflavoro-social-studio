@@ -79,6 +79,17 @@
   .shot img{display:block;width:100%;height:auto;background:#0C284C}
   .dl{font-size:13px;font-weight:700;color:var(--navy);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
   .dl:hover{border-color:var(--ciano)}
+  /* Visual (sfondo generato o caricato) */
+  .visual{margin-top:22px;border-top:1px solid var(--line);padding-top:18px}
+  .visual .vhead{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--navy)}
+  .vprev{margin:12px 0}
+  .vprev:empty{display:none}
+  .vprev img{display:block;max-width:280px;width:100%;height:auto;border:1px solid var(--line);border-radius:12px;background:#0C284C}
+  .vactions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .vactions .btn-ghost,.vactions label.upl{font-size:14px;padding:10px 16px}
+  label.upl{background:transparent;color:var(--navy);border:1px solid var(--line);border-radius:10px;font-weight:700;cursor:pointer;transition:.15s}
+  label.upl:hover{border-color:var(--navy)}
+  #visualMsg{margin-top:10px;font-size:13px;font-weight:600;min-height:18px}
   /* Status */
   #status{min-height:22px;font-size:14px;font-weight:600;margin-top:6px}
   .s-info{color:var(--muted)} .s-ok{color:var(--ok)} .s-err{color:var(--err)}
@@ -204,6 +215,23 @@
     <p class="hint">L'agente ha scelto il template e proposto i testi. Puoi correggerli prima di creare le immagini.</p>
     <div style="margin-bottom:8px">Template scelto: <span class="badge-tpl" id="tplBadge">—</span></div>
     <div id="editor"></div>
+
+    <!-- Blocco visual: compare solo per i template che usano un'immagine.
+         Sfondo generato dall'AI (chiave della sede), con Rigenera e Carica foto. -->
+    <div class="visual" id="visualBlock" hidden>
+      <div class="vhead" id="visualTitle">Immagine di sfondo</div>
+      <p class="hint" id="visualHint">Generata dall'AI dai tuoi testi, a norma di brand. Puoi rigenerarla o caricare una tua foto.</p>
+      <div class="vprev" id="visualPreview"></div>
+      <div class="vactions">
+        <button class="btn-ghost" id="btnVisualGen">Genera sfondo</button>
+        <button class="btn-ghost" id="btnVisualRegen" hidden>Rigenera</button>
+        <label class="upl" for="visualUpload">Carica una foto</label>
+        <input type="file" id="visualUpload" accept="image/*" hidden>
+        <button class="btn-ghost" id="btnVisualClear" hidden>Rimuovi</button>
+      </div>
+      <div id="visualMsg"></div>
+    </div>
+
     <div class="actions">
       <button class="btn-primary" id="btnRender">Crea immagini</button>
       <button class="btn-ghost" id="btnBack">Modifica la richiesta</button>
@@ -306,8 +334,12 @@ const PROV = {
 };
 const PROV_ORDER = ["anthropic", "openai", "google"];
 
-// Stato della sessione corrente.
-const state = { sedeId: null, contratto: null, generationId: null, formati: [], keys: [] };
+// Template che usano un visual e su quale chiave del contratto va messo il risultato.
+// notizia/evento/annuncio -> sfondo (assets.immagine); citazione -> ritratto (assets.ritratto).
+const ASSET_KEY_CLIENT = { notizia: "immagine", evento: "immagine", annuncio: "immagine", citazione: "ritratto" };
+
+// Stato della sessione corrente. "visual" tiene l'immagine scelta (generata o caricata).
+const state = { sedeId: null, contratto: null, generationId: null, formati: [], keys: [], visual: { assetKey: null, dataUri: null } };
 
 const $ = (id) => document.getElementById(id);
 const status = (msg, cls = "s-info", spin = false) => {
@@ -488,6 +520,7 @@ $("btnGen").addEventListener("click", async () => {
     state.contratto = data.contratto;
     state.generationId = data.generationId || null;
     buildEditor(data.contratto);
+    setupVisual(data.contratto);
     show("step2");
     const usato = data.model ? ` · modello: ${data.model}` : "";
     status("Contenuto pronto: rivedilo e crea le immagini." + usato, "s-ok");
@@ -559,9 +592,120 @@ function collectContratto() {
 
 $("btnBack").addEventListener("click", () => { show("step1"); status(""); });
 
+/* -------------------- STEP 2 → visual (sfondo/ritratto) -------------------- */
+// Messaggio locale del blocco visual (con eventuale spinner).
+const vmsg = (msg, cls = "s-info", spin = false) => {
+  const el = $("visualMsg");
+  el.className = cls;
+  el.innerHTML = (spin ? '<span class="spinner"></span>' : "") + (msg || "");
+};
+
+// Prepara il blocco visual all'ingresso nello step 2: mostra/nasconde in base al template
+// e, per i template che usano un'immagine, avvia la generazione automatica.
+function setupVisual(contratto) {
+  const tpl = contratto && contratto.template;
+  const assetKey = ASSET_KEY_CLIENT[tpl];
+  state.visual = { assetKey: null, dataUri: null };
+  $("visualPreview").innerHTML = "";
+  $("btnVisualRegen").hidden = true;
+  $("btnVisualClear").hidden = true;
+  vmsg("");
+
+  if (!assetKey) { $("visualBlock").hidden = true; return; }  // es. "dato": nessun visual
+  $("visualBlock").hidden = false;
+
+  if (tpl === "citazione") {
+    $("visualTitle").textContent = "Ritratto / sfondo";
+    $("visualHint").textContent = "Per un ritratto reale carica una foto della persona. In alternativa l'AI genera solo uno sfondo decorativo a norma di brand (nessun volto reale).";
+  } else {
+    $("visualTitle").textContent = "Immagine di sfondo";
+    $("visualHint").textContent = "Generata dall'AI dai tuoi testi, a norma di brand. Puoi rigenerarla o caricare una tua foto.";
+  }
+  $("btnVisualGen").hidden = false;
+  // Comportamento scelto: genera in automatico, poi la sede può rigenerare o caricare.
+  generateVisual();
+}
+
+// Chiama la Edge Function generate-visual con la chiave della sede (BYO-key).
+async function generateVisual() {
+  const contratto = collectContratto();      // usa i testi eventualmente già corretti
+  const provider = $("genProvider").value || undefined;
+  const formato = state.formati[0] || "4:5"; // aspect ratio del primo formato scelto
+  $("btnVisualGen").disabled = true;
+  $("btnVisualRegen").disabled = true;
+  vmsg("Generazione dell'immagine in corso… (pochi secondi)", "s-info", true);
+  try {
+    const { status: code, data } = await callFn("generate-visual", {
+      sedeId: state.sedeId, contratto, provider, formato,
+    });
+    if (data && data.ok === true && data.dataUri) {
+      state.visual = { assetKey: data.assetKey || ASSET_KEY_CLIENT[contratto.template], dataUri: data.dataUri };
+      showVisualPreview(state.visual.dataUri);
+      $("btnVisualGen").hidden = true;
+      $("btnVisualRegen").hidden = false;
+      $("btnVisualClear").hidden = false;
+      vmsg("Immagine pronta. Puoi rigenerarla o caricarne una tua.", "s-ok");
+      return;
+    }
+    // Provider senza generazione immagini (Anthropic ora, OpenAI in fase 2): si carica una foto.
+    if (data && data.needsUpload) {
+      $("btnVisualGen").hidden = true;
+      $("btnVisualRegen").hidden = true;
+      vmsg((data.error || "Generazione non disponibile.") + " Carica una foto per procedere.", "s-info");
+      return;
+    }
+    vmsg(errMsg(code, data), "s-err");
+  } catch (e) {
+    vmsg("Errore di rete durante la generazione. Riprova o carica una foto.", "s-err");
+  } finally {
+    $("btnVisualGen").disabled = false;
+    $("btnVisualRegen").disabled = false;
+  }
+}
+
+function showVisualPreview(dataUri) {
+  $("visualPreview").innerHTML = `<img src="${dataUri}" alt="Anteprima immagine">`;
+}
+
+$("btnVisualGen").addEventListener("click", generateVisual);
+$("btnVisualRegen").addEventListener("click", generateVisual);
+
+// Carica una foto dal computer: diventa il visual, senza consumare token.
+$("visualUpload").addEventListener("change", (ev) => {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { vmsg("Il file non è un'immagine.", "s-err"); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const tpl = state.contratto && state.contratto.template;
+    state.visual = { assetKey: ASSET_KEY_CLIENT[tpl] || "immagine", dataUri: String(reader.result) };
+    showVisualPreview(state.visual.dataUri);
+    $("btnVisualGen").hidden = true;
+    $("btnVisualRegen").hidden = false;   // "Rigenera" resta per tornare all'AI
+    $("btnVisualClear").hidden = false;
+    vmsg("Foto caricata. Verrà usata come immagine del post.", "s-ok");
+  };
+  reader.readAsDataURL(file);
+  ev.target.value = "";  // consente di ricaricare lo stesso file
+});
+
+// Rimuove il visual scelto: il motore userà il fondo brand di default.
+$("btnVisualClear").addEventListener("click", () => {
+  state.visual = { assetKey: null, dataUri: null };
+  $("visualPreview").innerHTML = "";
+  $("btnVisualClear").hidden = true;
+  $("btnVisualRegen").hidden = true;
+  $("btnVisualGen").hidden = false;
+  vmsg("Immagine rimossa: verrà usato lo sfondo di brand.", "s-info");
+});
+
 /* ----------------------- STEP 3 → render immagini ------------------------- */
 $("btnRender").addEventListener("click", async () => {
   const contratto = collectContratto();
+  // Cuci il visual scelto (generato o caricato) nel contratto: il motore lo usa come sfondo/ritratto.
+  if (state.visual.dataUri && state.visual.assetKey) {
+    contratto.assets = Object.assign({}, contratto.assets, { [state.visual.assetKey]: state.visual.dataUri });
+  }
   $("btnRender").disabled = true;
   status("Creazione delle immagini in corso… (pochi secondi)", "s-info", true);
   try {
@@ -598,6 +742,8 @@ function showImages(urls) {
 
 $("btnRestart").addEventListener("click", () => {
   state.contratto = null; state.generationId = null;
+  state.visual = { assetKey: null, dataUri: null };
+  $("visualBlock").hidden = true; $("visualPreview").innerHTML = "";
   $("richiesta").value = ""; clearMissing();
   show("step1"); status("");
 });
