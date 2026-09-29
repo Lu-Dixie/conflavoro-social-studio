@@ -90,6 +90,29 @@
   .missing ul{margin:8px 0 0 18px}
   [hidden]{display:none!important}
   footer{max-width:900px;margin:0 auto;padding:8px 24px 40px;color:var(--muted);font-size:12px}
+  /* Help link + modale "dove trovo la chiave" */
+  .helplink{display:inline-block;margin-top:8px;font-size:13px;font-weight:600;color:var(--ciano);
+    background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-family:inherit}
+  .helplink:hover{color:var(--navy)}
+  .modal-back{position:fixed;inset:0;background:rgba(12,40,76,.55);display:flex;align-items:center;
+    justify-content:center;padding:20px;z-index:50}
+  .modal{background:#fff;border-radius:16px;box-shadow:0 18px 50px rgba(12,40,76,.28);
+    max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:26px 26px 22px;position:relative}
+  .modal h3{font-size:20px;font-weight:700;margin-bottom:6px}
+  .modal-sub{color:var(--muted);font-size:14px;margin-bottom:18px}
+  .modal-x{position:absolute;top:14px;right:16px;background:none;border:none;font-size:24px;line-height:1;
+    color:var(--muted);cursor:pointer;padding:2px 6px;font-weight:400}
+  .modal-x:hover{color:var(--navy)}
+  .prov{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+  .prov:last-child{margin-bottom:0}
+  .prov h4{font-size:15px;font-weight:700;margin-bottom:2px}
+  .prov .fmt{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px}
+  .prov ol{margin:0 0 0 18px;padding:0}
+  .prov ol li{font-size:14px;margin:3px 0}
+  .prov ol li a{color:var(--ciano);font-weight:600;text-decoration:none}
+  .prov ol li a:hover{text-decoration:underline}
+  .prov .warn{font-size:12px;color:#8a2a1a;background:#fff6f4;border:1px solid #f3c9c0;
+    border-radius:8px;padding:7px 10px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -135,6 +158,7 @@
           <input type="password" id="apiKey" autocomplete="off" spellcheck="false" placeholder="Incolla qui la chiave">
           <button type="button" class="peek" id="peek">mostra</button>
         </div>
+        <button type="button" class="helplink" id="keyHelp">Non sai dove trovare la tua chiave?</button>
       </div>
     </div>
 
@@ -200,6 +224,48 @@
 
   <div id="status"></div>
 </main>
+
+<!-- Modale: dove trovare la chiave API per ogni fornitore -->
+<div class="modal-back" id="keyHelpModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="khTitle">
+    <button class="modal-x" id="keyHelpClose" aria-label="Chiudi">&times;</button>
+    <h3 id="khTitle">Dove trovare la tua chiave API</h3>
+    <p class="modal-sub">Ogni fornitore ha un suo pannello. Crea lì la chiave, copiala subito (viene mostrata una volta sola) e incollala nel campo qui accanto.</p>
+
+    <div class="prov">
+      <h4>Anthropic (Claude)</h4>
+      <div class="fmt">La chiave inizia con <b>sk-ant-</b></div>
+      <ol>
+        <li>Vai su <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> e accedi (o crea un account).</li>
+        <li>Apri <b>Settings → API keys</b>.</li>
+        <li>Clicca <b>Create Key</b>, dai un nome e <b>copia subito</b> la chiave.</li>
+      </ol>
+      <div class="warn">Serve un metodo di pagamento in <b>Billing</b> perché la chiave funzioni.</div>
+    </div>
+
+    <div class="prov">
+      <h4>OpenAI (GPT)</h4>
+      <div class="fmt">La chiave inizia con <b>sk-</b></div>
+      <ol>
+        <li>Vai su <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a> e accedi.</li>
+        <li>Apri <b>Settings → API keys</b>.</li>
+        <li>Clicca <b>Create new secret key</b>, dai un nome e <b>copia subito</b> la chiave.</li>
+      </ol>
+      <div class="warn">Serve un metodo di pagamento in <b>Billing</b> perché la chiave funzioni.</div>
+    </div>
+
+    <div class="prov">
+      <h4>Google (Gemini)</h4>
+      <div class="fmt">Chiave di Google AI Studio</div>
+      <ol>
+        <li>Vai su <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a> e accedi con il tuo account Google.</li>
+        <li>Clicca <b>Get API key</b> (Ottieni chiave API) nel menu a sinistra.</li>
+        <li>Clicca <b>Create API key</b> e <b>copia subito</b> la chiave.</li>
+      </ol>
+      <div class="warn" style="color:#0b7a44;background:rgba(15,157,88,.09);border-color:rgba(15,157,88,.4)">Gratis, senza carta di credito: ideale per iniziare.</div>
+    </div>
+  </div>
+</div>
 
 <footer>
   Le immagini sono generate a partire dalla richiesta della sede. Le chiavi API delle sedi restano protette sul server e non transitano mai da questa pagina.
@@ -327,6 +393,14 @@ $("peek").addEventListener("click", () => {
   inp.type = show ? "text" : "password";
   $("peek").textContent = show ? "nascondi" : "mostra";
 });
+
+// Popup "Non sai dove trovare la tua chiave?": istruzioni per fornitore.
+function openKeyHelp() { $("keyHelpModal").hidden = false; }
+function closeKeyHelp() { $("keyHelpModal").hidden = true; }
+$("keyHelp").addEventListener("click", openKeyHelp);
+$("keyHelpClose").addEventListener("click", closeKeyHelp);
+$("keyHelpModal").addEventListener("click", (e) => { if (e.target === $("keyHelpModal")) closeKeyHelp(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeKeyHelp(); });
 
 // Collega/aggiorna la chiave: validate-key la verifica con una chiamata reale al modello
 // e la salva cifrata nel Vault. La chiave non viene mai conservata in questa pagina.
