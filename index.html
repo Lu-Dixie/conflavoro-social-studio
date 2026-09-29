@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conflavoro Social Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0C284C; --ciano:#08B5E8; --bianco:#FFFFFF;
+    --verde:#009246; --rosso:#CE2B37;
+    --bg:#eef2f6; --card:#ffffff; --ink:#0C284C; --muted:#5b6b80;
+    --line:#dce3ec; --ok:#0f9d58; --err:#c0392b; --shadow:0 6px 24px rgba(12,40,76,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Titillium Web',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;line-height:1.4;
+  }
+  /* Header */
+  header{background:var(--navy);color:#fff;padding:20px 24px}
+  .head-in{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:16px}
+  .mark{display:flex;flex-direction:column;line-height:1}
+  .mark .brand{font-weight:700;font-size:24px;letter-spacing:.02em}
+  .mark .sub{font-weight:400;font-size:14px;letter-spacing:.16em;opacity:.85;text-transform:uppercase}
+  .tricolore{display:flex;height:6px;width:120px;border-radius:3px;overflow:hidden;margin-left:auto}
+  .tricolore i{flex:1}
+  .tricolore .v{background:var(--verde)} .tricolore .b{background:#fff} .tricolore .r{background:var(--rosso)}
+  .aibadge{background:var(--ciano);color:var(--navy);font-weight:700;font-size:13px;border-radius:14px;padding:3px 10px;letter-spacing:.04em}
+  /* Layout */
+  main{max-width:900px;margin:0 auto;padding:24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px;margin-bottom:20px}
+  .card h2{font-size:18px;font-weight:700;margin-bottom:4px}
+  .card .hint{color:var(--muted);font-size:14px;margin-bottom:16px}
+  .step-n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-weight:700;font-size:14px;margin-right:8px}
+  label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+  select,textarea,input[type=text]{
+    width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;
+  }
+  select:focus,textarea:focus,input:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(8,181,232,.18)}
+  textarea{resize:vertical;min-height:110px}
+  .row{display:flex;flex-wrap:wrap;gap:20px}
+  .row>div{flex:1;min-width:220px}
+  .formats{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:14px;user-select:none}
+  .chip input{accent-color:var(--ciano);width:16px;height:16px}
+  .chip.on{border-color:var(--ciano);background:rgba(8,181,232,.08)}
+  /* Buttons */
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}
+  button{font-family:inherit;font-weight:700;font-size:15px;border:none;border-radius:10px;padding:12px 20px;cursor:pointer;transition:.15s}
+  .btn-primary{background:var(--ciano);color:var(--navy)}
+  .btn-primary:hover{filter:brightness(1.05)}
+  .btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--navy)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  /* Advanced */
+  details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--muted)}
+  /* Contract editor */
+  .badge-tpl{display:inline-block;background:var(--navy);color:#fff;font-weight:700;font-size:13px;border-radius:8px;padding:5px 12px;letter-spacing:.03em;text-transform:uppercase}
+  .field-note{font-size:12px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+  /* Images */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;margin-top:8px}
+  .shot{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0C284C}
+  .shot .cap{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#fff}
+  .shot .cap b{font-size:14px}
+  .shot img{display:block;width:100%;height:auto;background:#0C284C}
+  .dl{font-size:13px;font-weight:700;color:var(--navy);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+  .dl:hover{border-color:var(--ciano)}
+  /* Status */
+  #status{min-height:22px;font-size:14px;font-weight:600;margin-top:6px}
+  .s-info{color:var(--muted)} .s-ok{color:var(--ok)} .s-err{color:var(--err)}
+  .spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(8,181,232,.35);border-top-color:var(--ciano);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:7px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .missing{background:#fff6f4;border:1px solid #f3c9c0;border-radius:10px;padding:12px 14px;font-size:14px;color:#8a2a1a}
+  .missing ul{margin:8px 0 0 18px}
+  [hidden]{display:none!important}
+  footer{max-width:900px;margin:0 auto;padding:8px 24px 40px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-in">
+    <div class="mark">
+      <span class="brand">Conflavoro Social Studio</span>
+      <span class="sub">Generatore immagini per le sedi</span>
+    </div>
+    <span class="aibadge">AI</span>
+    <span class="tricolore"><i class="v"></i><i class="b"></i><i class="r"></i></span>
+  </div>
+</header>
+
+<main>
+  <!-- STEP 1 — Richiesta -->
+  <section class="card" id="step1">
+    <h2><span class="step-n">1</span>Descrivi il post</h2>
+    <p class="hint">Scegli la sede e scrivi in linguaggio naturale cosa vuoi comunicare. L'agente sceglie il template e compone i testi rispettando le regole di brand.</p>
+
+    <div class="row">
+      <div>
+        <label for="sede">Sede</label>
+        <select id="sede"></select>
+      </div>
+      <div>
+        <label>Formati da generare</label>
+        <div class="formats" id="formats">
+          <label class="chip on"><input type="checkbox" value="4:5" checked> 4:5 (feed)</label>
+          <label class="chip on"><input type="checkbox" value="1:1" checked> 1:1 (quadrato)</label>
+          <label class="chip on"><input type="checkbox" value="9:16" checked> 9:16 (storie)</label>
+        </div>
+      </div>
+    </div>
+
+    <label for="richiesta">Richiesta</label>
+    <textarea id="richiesta" placeholder="Es.: Prepara un post che annuncia che il 25–40% delle PMI usa già almeno uno strumento di AI, citando l'Osservatorio Digitale PMI 2026."></textarea>
+
+    <details>
+      <summary>Opzioni avanzate</summary>
+      <label for="provider">Provider del modello</label>
+      <select id="provider">
+        <option value="">Automatico (dalla chiave della sede)</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI (GPT)</option>
+        <option value="google">Google (Gemini)</option>
+      </select>
+    </details>
+
+    <div class="actions">
+      <button class="btn-primary" id="btnGen">Genera contenuto</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 — Anteprima / editing del contratto -->
+  <section class="card" id="step2" hidden>
+    <h2><span class="step-n">2</span>Rivedi il contenuto</h2>
+    <p class="hint">L'agente ha scelto il template e proposto i testi. Puoi correggerli prima di creare le immagini.</p>
+    <div style="margin-bottom:8px">Template scelto: <span class="badge-tpl" id="tplBadge">—</span></div>
+    <div id="editor"></div>
+    <div class="actions">
+      <button class="btn-primary" id="btnRender">Crea immagini</button>
+      <button class="btn-ghost" id="btnBack">Modifica la richiesta</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 — Immagini -->
+  <section class="card" id="step3" hidden>
+    <h2><span class="step-n">3</span>Scarica le immagini</h2>
+    <p class="hint">Immagini a norma di brand (palette, logo di sede, badge AI). Nessuna pubblicazione: solo download.</p>
+    <div class="grid" id="images"></div>
+    <div class="actions">
+      <button class="btn-ghost" id="btnRestart">Nuovo post</button>
+    </div>
+  </section>
+
+  <div id="status"></div>
+</main>
+
+<footer>
+  Le immagini sono generate a partire dalla richiesta della sede. Le chiavi API delle sedi restano protette sul server e non transitano mai da questa pagina.
+</footer>
+
+<script>
+/* ============================================================================
+   CONFIGURAZIONE
+   - BASE: URL del progetto Supabase. La pagina e' ospitata FUORI da Supabase
+     (GitHub Pages), quindi le chiamate a /functions/v1/... sono cross-origin:
+     le Edge Functions generate-content e render-image hanno il CORS abilitato.
+   - ANON: publishable key (pensata per stare lato client; NON è un segreto).
+   - SEDI: elenco delle sedi abilitate. Aggiungi qui le nuove sedi (id = UUID
+     della tabella "sedi"). Pilota: Arzano.
+============================================================================ */
+const CONFIG = {
+  BASE: "https://xznuymsdtpshtonmurrn.supabase.co",
+  ANON: "sb_publishable_gkNjfky9EnRS_CKweLq-DQ_v-l0n1QF",
+  SEDI: [
+    { id: "df31413e-a322-4099-bd78-42d1e89a800e", nome: "Arzano" },
+  ],
+};
+
+// Etichette leggibili per i campi del contratto.
+const LABELS = {
+  occhiello: "Occhiello", titolo: "Titolo", numero: "Numero / dato",
+  testo: "Testo", quote: "Citazione", nome: "Nome", ruolo: "Ruolo",
+  claim: "Claim", partner: "Partner", sottotitolo: "Sottotitolo",
+  evento: "Nome evento", data: "Data", ora: "Ora", luogo: "Luogo",
+  fonte: "Fonte",
+};
+// Campi che meritano una textarea (testo lungo).
+const LONG = new Set(["testo", "quote", "titolo", "sottotitolo", "claim"]);
+
+// Stato della sessione corrente.
+const state = { sedeId: null, contratto: null, generationId: null, formati: [] };
+
+const $ = (id) => document.getElementById(id);
+const status = (msg, cls = "s-info", spin = false) => {
+  $("status").className = cls;
+  $("status").innerHTML = (spin ? '<span class="spinner"></span>' : "") + msg;
+};
+
+// Popola il menu delle sedi.
+(function initSedi() {
+  const sel = $("sede");
+  CONFIG.SEDI.forEach((s) => {
+    const o = document.createElement("option");
+    o.value = s.id; o.textContent = s.nome; sel.appendChild(o);
+  });
+})();
+
+// Evidenzia le "chip" dei formati selezionati.
+$("formats").addEventListener("change", (e) => {
+  const chip = e.target.closest(".chip");
+  if (chip) chip.classList.toggle("on", e.target.checked);
+});
+function selectedFormats() {
+  return [...$("formats").querySelectorAll("input:checked")].map((i) => i.value);
+}
+
+// Chiamata alle Edge Functions (same-origin quando BASE è vuoto).
+async function callFn(name, body) {
+  const res = await fetch(`${CONFIG.BASE}/functions/v1/${name}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "apikey": CONFIG.ANON,
+      "authorization": `Bearer ${CONFIG.ANON}`,
+    },
+    body: JSON.stringify(body),
+  });
+  let data = null;
+  try { data = await res.json(); } catch { /* risposta non-JSON */ }
+  return { status: res.status, data };
+}
+
+/* -------------------------- STEP 1 → genera -------------------------------- */
+$("btnGen").addEventListener("click", async () => {
+  const sedeId = $("sede").value;
+  const richiesta = $("richiesta").value.trim();
+  const provider = $("provider").value || undefined;
+  const formati = selectedFormats();
+
+  if (!richiesta) return status("Scrivi prima la richiesta.", "s-err");
+  if (!formati.length) return status("Seleziona almeno un formato.", "s-err");
+
+  state.sedeId = sedeId;
+  state.formati = formati;
+
+  $("btnGen").disabled = true;
+  status("Generazione del contenuto in corso…", "s-info", true);
+  try {
+    const { status: code, data } = await callFn("generate-content", { sedeId, richiesta, provider });
+
+    // Dati insufficienti: il modello elenca cosa manca.
+    if (data && data.ok === false && data.template === "nessuno") {
+      showMissing(data.mancano || []);
+      status("Servono più dettagli per comporre il post.", "s-err");
+      return;
+    }
+    if (!data || data.ok !== true) {
+      status(errMsg(code, data), "s-err");
+      return;
+    }
+
+    state.contratto = data.contratto;
+    state.generationId = data.generationId || null;
+    buildEditor(data.contratto);
+    show("step2");
+    const usato = data.model ? ` · modello: ${data.model}` : "";
+    status("Contenuto pronto: rivedilo e crea le immagini." + usato, "s-ok");
+  } catch (e) {
+    status("Errore di rete verso il servizio. Riprova.", "s-err");
+  } finally {
+    $("btnGen").disabled = false;
+  }
+});
+
+function showMissing(mancano) {
+  clearMissing();
+  const box = document.createElement("div");
+  box.className = "missing"; box.id = "missingBox";
+  box.innerHTML = "<b>Dati insufficienti.</b> Aggiungi questi dettagli alla richiesta:" +
+    "<ul>" + mancano.map((m) => `<li>${escapeHtml(String(m))}</li>`).join("") + "</ul>";
+  $("richiesta").insertAdjacentElement("afterend", box);
+}
+function clearMissing() { const b = $("missingBox"); if (b) b.remove(); }
+
+/* -------------------- STEP 2 → editor del contratto ----------------------- */
+function buildEditor(contratto) {
+  clearMissing();
+  $("tplBadge").textContent = contratto.template || "—";
+  const ed = $("editor");
+  ed.innerHTML = "";
+
+  const contenuto = (contratto.contenuto && typeof contratto.contenuto === "object") ? contratto.contenuto : {};
+  const keys = Object.keys(contenuto);
+
+  if (!keys.length) {
+    ed.innerHTML = '<p class="hint">Nessun campo testuale editabile per questo contenuto: procedi pure alla creazione delle immagini.</p>';
+  }
+  keys.forEach((k) => addField(ed, "contenuto." + k, LABELS[k] || cap(k), contenuto[k]));
+
+  // "evidenzia": parola-chiave messa in risalto (accento ciano).
+  if (typeof contratto.evidenzia === "string" || contratto.evidenzia === undefined) {
+    addField(ed, "evidenzia", "Parola in evidenza", contratto.evidenzia || "",
+      "Una sola parola/dato viene messo in risalto in ciano.");
+  }
+}
+
+function addField(container, path, label, value, note) {
+  const wrap = document.createElement("div");
+  const lab = document.createElement("label");
+  lab.textContent = label;
+  if (note) { const s = document.createElement("span"); s.className = "field-note"; s.textContent = " — " + note; lab.appendChild(s); }
+  const key = path.split(".").pop();
+  const long = LONG.has(key) || String(value ?? "").length > 60;
+  const inp = document.createElement(long ? "textarea" : "input");
+  if (!long) inp.type = "text";
+  inp.value = value == null ? "" : String(value);
+  inp.dataset.path = path;
+  wrap.appendChild(lab); wrap.appendChild(inp); container.appendChild(wrap);
+}
+
+// Ricostruisce il contratto dai campi modificati.
+function collectContratto() {
+  const c = JSON.parse(JSON.stringify(state.contratto));
+  $("editor").querySelectorAll("[data-path]").forEach((inp) => {
+    const [head, tail] = inp.dataset.path.split(".");
+    if (tail) { c[head] = c[head] || {}; c[head][tail] = inp.value; }
+    else { c[head] = inp.value; }
+  });
+  if (!c.evidenzia) delete c.evidenzia;
+  c.formati = state.formati;            // i formati scelti allo step 1
+  return c;
+}
+
+$("btnBack").addEventListener("click", () => { show("step1"); status(""); });
+
+/* ----------------------- STEP 3 → render immagini ------------------------- */
+$("btnRender").addEventListener("click", async () => {
+  const contratto = collectContratto();
+  $("btnRender").disabled = true;
+  status("Creazione delle immagini in corso… (pochi secondi)", "s-info", true);
+  try {
+    const { status: code, data } = await callFn("render-image", {
+      sedeId: state.sedeId, contratto, generationId: state.generationId,
+    });
+    if (!data || data.ok !== true) { status(errMsg(code, data), "s-err"); return; }
+    showImages(data.output_urls || {});
+    show("step3");
+    status("Immagini pronte per il download.", "s-ok");
+  } catch (e) {
+    status("Errore di rete durante la creazione. Riprova.", "s-err");
+  } finally {
+    $("btnRender").disabled = false;
+  }
+});
+
+function showImages(urls) {
+  const box = $("images"); box.innerHTML = "";
+  const order = ["4:5", "1:1", "9:16"];
+  const formati = Object.keys(urls).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  if (!formati.length) { box.innerHTML = '<p class="hint">Nessuna immagine restituita.</p>'; return; }
+  formati.forEach((fmt) => {
+    const url = urls[fmt]; if (!url) return;
+    const card = document.createElement("div"); card.className = "shot";
+    const fname = `${state.contratto.template}_${fmt.replace(":", "x")}.png`;
+    card.innerHTML =
+      `<div class="cap"><b>${fmt}</b>` +
+      `<a class="dl" href="${url}" download="${fname}">Scarica ▾</a></div>` +
+      `<img src="${url}" alt="Formato ${fmt}" loading="lazy">`;
+    box.appendChild(card);
+  });
+}
+
+$("btnRestart").addEventListener("click", () => {
+  state.contratto = null; state.generationId = null;
+  $("richiesta").value = ""; clearMissing();
+  show("step1"); status("");
+});
+
+/* ------------------------------ utilità ----------------------------------- */
+function show(step) {
+  ["step1", "step2", "step3"].forEach((s) => { $(s).hidden = (s !== step); });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function errMsg(code, data) {
+  const e = data && (data.error || data.message);
+  if (code === 401) return "Chiave della sede non valida: controlla la BYO-key.";
+  if (code === 409) return "Nessun prompt di sistema attivo. " + (e || "");
+  if (code === 502) return "Modello temporaneamente non raggiungibile: riprova tra poco.";
+  if (code === 422) return "La risposta del modello non è interpretabile: riprova.";
+  return "Errore" + (e ? `: ${e}` : ` (codice ${code}).`);
+}
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function escapeHtml(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+</script>
+</body>
+</html>
