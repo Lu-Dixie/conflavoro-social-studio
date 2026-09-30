@@ -64,6 +64,9 @@
   .kchip.on{border-color:var(--ok);background:rgba(15,157,88,.09);color:#0b7a44}
   .kchip .p{color:var(--ink)}
   .kchip.on .p{color:#0b7a44}
+  .kchip{display:inline-flex;align-items:center;gap:8px}
+  .kunlink{font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:#b42318;background:#fff;border:1px solid rgba(180,35,24,.35);border-radius:8px;padding:3px 8px}
+  .kunlink:hover{background:rgba(180,35,24,.08);border-color:#b42318}
   #keyMsg{min-height:20px;font-size:14px;font-weight:600;margin-top:12px}
   .note{font-size:13px;color:#8a2a1a;background:#fff6f4;border:1px solid #f3c9c0;border-radius:10px;padding:10px 12px;margin-top:10px}
   .pwrap{position:relative}
@@ -187,6 +190,17 @@
         <label for="genProvider">Fornitore per questo post</label>
         <select id="genProvider">
           <option value="">Automatico (ultima chiave collegata)</option>
+        </select>
+      </div>
+      <div>
+        <label for="genTemplate">Tipo di post</label>
+        <select id="genTemplate">
+          <option value="">Automatico (lo sceglie l'agente)</option>
+          <option value="notizia">Notizia</option>
+          <option value="citazione">Citazione</option>
+          <option value="dato">Dato / statistica</option>
+          <option value="evento">Evento</option>
+          <option value="annuncio">Annuncio</option>
         </select>
       </div>
       <div>
@@ -384,11 +398,36 @@ function renderKeyStatus(keys) {
     const on = last4[p] != null;
     const chip = document.createElement("span");
     chip.className = "kchip " + (on ? "on" : "off");
-    chip.innerHTML = on
-      ? `<span class="p">${PROV[p].nome}</span> ✓ ····${escapeHtml(String(last4[p]))}`
-      : `<span class="p">${PROV[p].nome}</span> — non collegata`;
+    if (on) {
+      chip.innerHTML = `<span class="p">${PROV[p].nome}</span> ✓ ····${escapeHtml(String(last4[p]))}`;
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "kunlink"; btn.textContent = "Scollega";
+      btn.addEventListener("click", () => revokeKey(p));
+      chip.appendChild(btn);
+    } else {
+      chip.innerHTML = `<span class="p">${PROV[p].nome}</span> — non collegata`;
+    }
     box.appendChild(chip);
   });
+}
+
+// Scollega un fornitore dalla sede: rimuove il riferimento server-side (la chiave non
+// resta collegata alla prossima visita). Chiede conferma prima di procedere.
+async function revokeKey(provider) {
+  const nome = PROV[provider]?.nome || provider;
+  if (!confirm(`Scollegare la chiave ${nome}?\nLa sede non potrà più generare con questo fornitore finché non ne colleghi una nuova.`)) return;
+  keyMsg(`Scollegamento di ${nome} in corso…`, "s-info", true);
+  try {
+    const { data } = await callFn("validate-key", { sedeId: $("sede").value, provider, action: "revoke" });
+    if (data && data.ok) {
+      keyMsg(`Chiave ${nome} scollegata.`, "s-ok");
+      await loadKeyStatus();
+    } else {
+      keyMsg((data && data.error) ? data.error : "Scollegamento non riuscito.", "s-err");
+    }
+  } catch {
+    keyMsg("Errore di rete durante lo scollegamento. Riprova.", "s-err");
+  }
 }
 
 // Il menu "Fornitore per questo post" elenca solo i fornitori con una chiave collegata,
@@ -493,6 +532,7 @@ $("btnGen").addEventListener("click", async () => {
   const sedeId = $("sede").value;
   const richiesta = $("richiesta").value.trim();
   const provider = $("genProvider").value || undefined;
+  const template = $("genTemplate").value || undefined;
   const formati = selectedFormats();
 
   if (!richiesta) return status("Scrivi prima la richiesta.", "s-err");
@@ -504,7 +544,7 @@ $("btnGen").addEventListener("click", async () => {
   $("btnGen").disabled = true;
   status("Generazione del contenuto in corso…", "s-info", true);
   try {
-    const { status: code, data } = await callFn("generate-content", { sedeId, richiesta, provider });
+    const { status: code, data } = await callFn("generate-content", { sedeId, richiesta, provider, template });
 
     // Dati insufficienti: il modello elenca cosa manca.
     if (data && data.ok === false && data.template === "nessuno") {
@@ -732,12 +772,46 @@ function showImages(urls) {
     const url = urls[fmt]; if (!url) return;
     const card = document.createElement("div"); card.className = "shot";
     const fname = `${state.contratto.template}_${fmt.replace(":", "x")}.png`;
-    card.innerHTML =
-      `<div class="cap"><b>${fmt}</b>` +
-      `<a class="dl" href="${url}" download="${fname}">Scarica ▾</a></div>` +
-      `<img src="${url}" alt="Formato ${fmt}" loading="lazy">`;
+
+    const cap = document.createElement("div"); cap.className = "cap";
+    const b = document.createElement("b"); b.textContent = fmt;
+    // Link di download: apre comunque in nuova scheda (rel noopener) ma, al click,
+    // prova prima a scaricare il file direttamente via blob (l'attributo "download"
+    // non funziona sui signed URL cross-origin di Supabase). Se il fetch fallisce,
+    // resta il comportamento "apri in nuova scheda" da cui l'utente salva l'immagine.
+    const a = document.createElement("a");
+    a.className = "dl"; a.href = url; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "Scarica ▾";
+    a.addEventListener("click", (e) => { e.preventDefault(); downloadImage(url, fname); });
+    cap.appendChild(b); cap.appendChild(a);
+
+    const img = document.createElement("img");
+    img.src = url; img.alt = `Formato ${fmt}`; img.loading = "lazy";
+
+    card.appendChild(cap); card.appendChild(img);
     box.appendChild(card);
   });
+}
+
+// Scarica l'immagine forzando il download. Recupera il file come blob e simula il
+// click su un link con attributo "download"; se non è possibile (CORS/rete), apre
+// l'immagine in una nuova scheda così l'utente può salvarla manualmente.
+async function downloadImage(url, fname) {
+  status("Download dell'immagine in corso…", "s-info", true);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("fetch fallita");
+    const blob = await res.blob();
+    const obj = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = obj; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(obj), 5000);
+    status("Immagini pronte per il download.", "s-ok");
+  } catch {
+    window.open(url, "_blank", "noopener");
+    status("Immagine aperta in una nuova scheda: usa \"Salva immagine con nome\".", "s-ok");
+  }
 }
 
 $("btnRestart").addEventListener("click", () => {
