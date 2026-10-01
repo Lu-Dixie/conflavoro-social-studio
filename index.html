@@ -35,7 +35,7 @@
   .card .hint{color:var(--muted);font-size:14px;margin-bottom:16px}
   .step-n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-weight:700;font-size:14px;margin-right:8px}
   label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
-  select,textarea,input[type=text]{
+  select,textarea,input[type=text],input[type=password]{
     width:100%;font-family:inherit;font-size:15px;color:var(--ink);
     background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;
   }
@@ -70,7 +70,8 @@
   #keyMsg{min-height:20px;font-size:14px;font-weight:600;margin-top:12px}
   .note{font-size:13px;color:#8a2a1a;background:#fff6f4;border:1px solid #f3c9c0;border-radius:10px;padding:10px 12px;margin-top:10px}
   .pwrap{position:relative}
-  .pwrap .peek{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--muted);font-size:13px;font-weight:600;padding:4px 8px;cursor:pointer}
+  .pwrap .peek{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--muted);font-size:13px;font-weight:600;padding:4px 8px;cursor:pointer;min-width:74px;text-align:center}
+  .pwrap input{padding-right:84px}
   /* Contract editor */
   .badge-tpl{display:inline-block;background:var(--navy);color:#fff;font-weight:700;font-size:13px;border-radius:8px;padding:5px 12px;letter-spacing:.03em;text-transform:uppercase}
   .field-note{font-size:12px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
