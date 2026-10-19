@@ -44,6 +44,8 @@
   .row{display:flex;flex-wrap:wrap;gap:20px}
   .row>div{flex:1;min-width:220px}
   .formats{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .formats-col{flex-direction:column;align-items:stretch;gap:12px;margin-top:0}
+  .formats-col .chip{width:100%;padding:11px 12px}
   .chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:14px;user-select:none}
   .chip input{accent-color:var(--ciano);width:16px;height:16px}
   .chip.on{border-color:var(--ciano);background:rgba(8,181,232,.08)}
@@ -90,6 +92,9 @@
   .caphash textarea.htarea{min-height:60px}
   .caprow{display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap}
   .copybtn{font-size:14px;padding:9px 16px}
+  /* Barra impostazioni (ingranaggio): compare quando il pannello chiave è chiuso */
+  .settingsbar{display:flex;justify-content:flex-end;margin-bottom:10px}
+  .gearbtn{font-size:14px;display:inline-flex;align-items:center;gap:7px}
   /* Visual (sfondo generato o caricato) */
   .visual{margin-top:22px;border-top:1px solid var(--line);padding-top:18px}
   .visual .vhead{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--navy)}
@@ -149,7 +154,12 @@
 </header>
 
 <main>
-  <!-- STEP 1 — Chiave API della sede (pannello sempre visibile) -->
+  <!-- Pulsante impostazioni (ingranaggio): compare quando il pannello chiave è chiuso -->
+  <div class="settingsbar" id="settingsBar" hidden>
+    <button class="btn-ghost gearbtn" id="btnSettings" type="button" title="Apri le impostazioni della chiave API">⚙ Impostazioni chiavi</button>
+  </div>
+
+  <!-- STEP 1 — Chiave API della sede: a schermo pieno al primo accesso, poi richiudibile -->
   <section class="card" id="cardKey">
     <h2><span class="step-n">1</span>Collega la tua chiave API</h2>
     <p class="hint">Ogni sede genera con la propria chiave del fornitore di AI. La chiave viene verificata e conservata <b>cifrata sul server</b>: non resta su questa pagina e non va reinserita a ogni visita. Puoi collegare più fornitori e scegliere quale usare per ciascun post.</p>
@@ -185,6 +195,7 @@
 
     <div class="actions">
       <button class="btn-primary" id="btnLink">Collega / Aggiorna chiave</button>
+      <button class="btn-ghost" id="btnKeyDone" type="button" hidden>Chiudi impostazioni</button>
     </div>
     <div id="keyMsg"></div>
   </section>
@@ -200,8 +211,6 @@
         <select id="genProvider">
           <option value="">Automatico (ultima chiave collegata)</option>
         </select>
-      </div>
-      <div>
         <label for="genTemplate">Tipo di post</label>
         <select id="genTemplate">
           <option value="">Automatico (lo sceglie l'agente)</option>
@@ -214,7 +223,7 @@
       </div>
       <div>
         <label>Formati da generare</label>
-        <div class="formats" id="formats">
+        <div class="formats formats-col" id="formats">
           <label class="chip on"><input type="checkbox" value="4:5" checked> 4:5 (feed)</label>
           <label class="chip on"><input type="checkbox" value="1:1" checked> 1:1 (quadrato)</label>
           <label class="chip on"><input type="checkbox" value="9:16" checked> 9:16 (storie)</label>
@@ -472,6 +481,7 @@ function populateGenProvider(keys) {
   const has = keys.length > 0;
   $("btnGen").disabled = !has;
   $("genNote").hidden = has;
+  $("btnKeyDone").hidden = !has; // "Chiudi impostazioni" solo quando c'è già una chiave
 }
 
 // Suggerimento sul formato della chiave in base al fornitore scelto.
@@ -513,8 +523,10 @@ $("btnLink").addEventListener("click", async () => {
       $("apiKey").value = "";
       $("apiKey").type = "password"; $("peek").textContent = "mostra";
       keyMsg(`Chiave ${PROV[provider].nome} collegata ✓ (····${escapeHtml(String(data.last4 || ""))}).`, "s-ok");
+      const wasEmpty = state.keys.length === 0;
       await loadKeyStatus();
       $("genProvider").value = provider; // preseleziona il fornitore appena collegato
+      if (wasEmpty && state.keys.length > 0) setKeyCard(false); // al primo collegamento entra nel flusso
     } else {
       keyMsg((data && data.error) ? data.error : `Verifica non riuscita (codice ${code}).`, "s-err");
     }
@@ -525,8 +537,26 @@ $("btnLink").addEventListener("click", async () => {
   }
 });
 
-// Carica lo stato all'avvio.
-loadKeyStatus();
+// Pannello chiave: a schermo pieno al primo accesso, poi ridotto al pulsante "⚙ Impostazioni".
+function setKeyCard(open) {
+  state.keyCardOpen = open;
+  $("cardKey").hidden = !open;
+  $("settingsBar").hidden = open;
+  if (open) {
+    // Prima schermata / impostazioni: resta visibile SOLO il pannello chiave.
+    ["step1", "step2", "step3"].forEach((s) => { $(s).hidden = true; });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } else {
+    // Chiave presente: nascondi il pannello e riprendi il flusso al passo corrente.
+    show(state.currentStep || "step1");
+  }
+}
+$("btnSettings").addEventListener("click", () => setKeyCard(true));
+$("btnKeyDone").addEventListener("click", () => setKeyCard(false));
+
+// Carica lo stato all'avvio: se la sede ha già almeno una chiave, parte con il pannello
+// ridotto all'ingranaggio; se non ne ha, lo mostra a schermo pieno come prima schermata.
+loadKeyStatus().then(() => setKeyCard(state.keys.length === 0));
 
 // Evidenzia le "chip" dei formati selezionati.
 $("formats").addEventListener("change", (e) => {
@@ -883,6 +913,7 @@ $("btnRestart").addEventListener("click", () => {
 
 /* ------------------------------ utilità ----------------------------------- */
 function show(step) {
+  state.currentStep = step;
   ["step1", "step2", "step3"].forEach((s) => { $(s).hidden = (s !== step); });
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
