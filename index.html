@@ -777,22 +777,55 @@ function showVisualPreview(dataUri) {
 $("btnVisualGen").addEventListener("click", generateVisual);
 $("btnVisualRegen").addEventListener("click", generateVisual);
 
+// Ridimensiona la foto PRIMA di inviarla: le foto da cellulare (3-8 MB) diventerebbero
+// troppo grandi una volta convertite in testo e il motore le rifiuterebbe. La riduciamo
+// a un lato massimo di 2000 px (basta e avanza per tutti i formati) e la salviamo come
+// JPEG: il file resta sotto ~1 MB, il rendering è più veloce e l'orientamento (verticale/
+// orizzontale) viene mantenuto, così il taglio adattivo continua a funzionare.
+async function fotoRidimensionata(file, latoMax) {
+  let bmp = null;
+  try {
+    // createImageBitmap rispetta l'orientamento EXIF (foto scattate ruotate).
+    bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch (_e) {
+    // Fallback per browser che non supportano l'opzione: carica via <img>.
+    bmp = await new Promise((res, rej) => {
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      im.onload = () => { URL.revokeObjectURL(url); res(im); };
+      im.onerror = () => { URL.revokeObjectURL(url); rej(new Error("immagine non leggibile")); };
+      im.src = url;
+    });
+  }
+  const iw = bmp.width, ih = bmp.height;
+  const scala = Math.min(1, latoMax / Math.max(iw, ih));
+  const w = Math.max(1, Math.round(iw * scala));
+  const h = Math.max(1, Math.round(ih * scala));
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  canvas.getContext("2d").drawImage(bmp, 0, 0, w, h);
+  if (bmp.close) bmp.close();
+  return canvas.toDataURL("image/jpeg", 0.85);
+}
+
 // Carica una foto dal computer: diventa il visual, senza consumare token.
-$("visualUpload").addEventListener("change", (ev) => {
+$("visualUpload").addEventListener("change", async (ev) => {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
   if (!file.type.startsWith("image/")) { vmsg("Il file non è un'immagine.", "s-err"); return; }
-  const reader = new FileReader();
-  reader.onload = () => {
+  vmsg("Preparazione della foto…", "s-info", true);
+  try {
+    const dataUri = await fotoRidimensionata(file, 2000);
     const tpl = state.contratto && state.contratto.template;
-    state.visual = { assetKey: ASSET_KEY_CLIENT[tpl] || "immagine", dataUri: String(reader.result) };
-    showVisualPreview(state.visual.dataUri);
+    state.visual = { assetKey: ASSET_KEY_CLIENT[tpl] || "immagine", dataUri };
+    showVisualPreview(dataUri);
     $("btnVisualGen").hidden = true;
     $("btnVisualRegen").hidden = false;   // "Rigenera" resta per tornare all'AI
     $("btnVisualClear").hidden = false;
     vmsg("Foto caricata. Verrà usata come immagine del post.", "s-ok");
-  };
-  reader.readAsDataURL(file);
+  } catch (_e) {
+    vmsg("Non sono riuscito a leggere la foto. Prova con un'altra immagine.", "s-err");
+  }
   ev.target.value = "";  // consente di ricaricare lo stesso file
 });
 
