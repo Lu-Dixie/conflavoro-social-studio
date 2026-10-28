@@ -386,6 +386,19 @@ const LABELS = {
 // Campi che meritano una textarea (testo lungo).
 const LONG = new Set(["testo", "quote", "titolo", "sottotitolo", "claim"]);
 
+// Campi standard per tipo di post: l'editor li mostra SEMPRE (anche vuoti), nell'ordine
+// indicato, così la sede può completare a mano quelli che l'AI non ha potuto riempire
+// (per esempio data, ora e luogo di un evento). I campi extra restituiti dall'AI vengono
+// aggiunti dopo questi.
+const STANDARD_FIELDS = {
+  notizia:   ["occhiello", "titolo"],
+  annuncio:  ["claim", "partner"],
+  dato:      ["occhiello", "numero", "testo", "fonte"],
+  dato_statistica: ["occhiello", "numero", "testo", "fonte"],
+  citazione: ["quote", "nome", "ruolo", "occhiello"],
+  evento:    ["evento", "occhiello", "titolo", "sottotitolo", "data", "ora", "luogo"],
+};
+
 // Fornitori di AI supportati (etichetta + suggerimento sul formato della chiave).
 const PROV = {
   anthropic: { nome: "Anthropic (Claude)", hint: "di solito inizia con sk-ant-…" },
@@ -656,12 +669,16 @@ function buildEditor(contratto) {
   ed.innerHTML = "";
 
   const contenuto = (contratto.contenuto && typeof contratto.contenuto === "object") ? contratto.contenuto : {};
-  const keys = Object.keys(contenuto);
+  // Mostra sempre i campi standard del tipo scelto (anche vuoti), poi eventuali campi extra
+  // restituiti dall'AI. Così i campi come data/ora/luogo di un evento sono sempre compilabili.
+  const standard = STANDARD_FIELDS[contratto.template] || [];
+  const keys = standard.slice();
+  Object.keys(contenuto).forEach((k) => { if (!keys.includes(k)) keys.push(k); });
 
   if (!keys.length) {
     ed.innerHTML = '<p class="hint">Nessun campo testuale editabile per questo contenuto: procedi pure alla creazione delle immagini.</p>';
   }
-  keys.forEach((k) => addField(ed, "contenuto." + k, LABELS[k] || cap(k), contenuto[k]));
+  keys.forEach((k) => addField(ed, "contenuto." + k, LABELS[k] || cap(k), contenuto[k] == null ? "" : contenuto[k]));
 
   // "evidenzia": parola-chiave messa in risalto (accento ciano).
   if (typeof contratto.evidenzia === "string" || contratto.evidenzia === undefined) {
